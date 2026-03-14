@@ -324,6 +324,83 @@ function LinearPatch(y, L_patch, tau)
 end
 
 
+# function NL_estimate_HV(Y)
+
+#     nx,ny = size(Y)
+    
+#     polyOrder = 2
+    
+#     vPaths = VerticalPaths(Y)
+#     pathSize = length(vPaths[1])
+    
+#     VlinCoef = [curve_fit(Polynomial, Float32.(collect(range(1,length(y0)))), y0,polyOrder) for y0 in vPaths]
+#     RegLinesV = vec([f.(collect(range(1,pathSize))) for f in VlinCoef])
+#     residualsV = [RegLinesV[i] .- vPaths[i] for i in range(1,length(vPaths))]
+#     ProbsV = [pvalue(LjungBoxTest(r, pathSize-1, polyOrder+1)) for r in residualsV]
+    
+#     hPaths = HorizontalPaths(Y)
+#     HlinCoef = [curve_fit(Polynomial, Float32.(collect(range(1,length(y0)))), y0,polyOrder) for y0 in hPaths]
+#     RegLinesH = vec([f.(collect(range(1,pathSize))) for f in HlinCoef])
+#     residualsH = [RegLinesH[i] .- hPaths[i] for i in range(1,length(hPaths))]
+#     ProbsH = [pvalue(LjungBoxTest(r, pathSize-1, polyOrder+1)) for r in residualsH]
+
+#     DPaths = ScanSlope1(Y)[1]
+#     DPathInd = findall(v -> length(v) > 12, DPaths)
+#     #print(length(DPathInd))
+#     DPaths = DPaths[DPathInd]
+#     DlinCoef = [curve_fit(Polynomial, Float32.(collect(range(1,length(y0)))), y0,polyOrder) for y0 in DPaths]
+#     RegLinesD = vec([DlinCoef[i].(collect(range(1,length(DPaths[i])))) for i in range(1,length(DPaths))])
+#     residualsD = [RegLinesD[i] .- DPaths[i] for i in range(1,length(DPaths))]
+#     ProbsD = [pvalue(LjungBoxTest(residualsD[i], length(DPaths[i])-1, polyOrder+1)) for i in range(1,length(residualsD))]
+
+#     DM1Paths = ScanSlopeMinus1(Y)[1]
+#     DM1PathInd = findall(v -> length(v) > 12, DM1Paths)
+#     DM1Paths = DM1Paths[DM1PathInd]
+#     DM1linCoef = [curve_fit(Polynomial, Float32.(collect(range(1,length(y0)))), y0,polyOrder) for y0 in DM1Paths]
+#     RegLinesDM1 = vec([DM1linCoef[i].(collect(range(1,length(DM1Paths[i])))) for i in range(1,length(DM1Paths))])
+#     residualsDM1 = [RegLinesDM1[i] .- DM1Paths[i] for i in range(1,length(DM1Paths))]
+#     ProbsDM1 = [pvalue(LjungBoxTest(residualsDM1[i], length(DM1Paths[i])-1, polyOrder+1)) for i in range(1,length(residualsDM1))]
+
+#     th = 0.05
+#     IndsV = findall(v -> v >th, ProbsV)
+#     IndsH = findall(v -> v > th, ProbsH)
+#     IndsD = findall(v -> v > th, ProbsD)
+#     IndsDM1 = findall(v -> v > th, ProbsDM1)
+#     numPasInds = sum(length.([IndsV,IndsH,IndsD,IndsDM1]))
+
+#      while numPasInds  <= 5
+#          th = th*.75
+#       #   print("\n pCrit decreased to: \n", th)
+#          IndsV = findall(v -> v > th, ProbsV)
+#          IndsH = findall(v -> v > th, ProbsH)
+#          # IndsD = findall(v -> v > th, ProbsD)
+#          # IndsDM1 = findall(v -> v > th, ProbsDM1)
+#          #numPasInds = sum(length.([IndsV,IndsH,IndsD,IndsDM1]))
+#          numPasInds = sum(length.([IndsV,IndsH]))
+#      end
+
+#     print(numPasInds)
+
+#     # resultV = [sigma_estimate_plus.(vPaths[IndsV])][1]
+#     # resultH = [sigma_estimate_plus.(hPaths[IndsH])][1]
+#     # resultD = [sigma_estimate_plus.(DPaths[IndsD])][1]
+#     # resultDM1 = [sigma_estimate_plus.(DM1Paths[IndsDM1])][1]
+
+#     resultV = [NLE_Auto(line,12) for line in vPaths[IndsV]]
+#     resultH = [NLE_Auto(line,12) for line in hPaths[IndsH]]
+#     #resultD = [NLE_Auto(line,12) for line in vPaths[IndsD]]
+#     #resultDM1 = [NLE_Auto(line,12) for line in vPaths[IndsDM1]]
+    
+#     #PROBS = vcat(ProbsV[IndsV],ProbsH[IndsH],ProbsD[IndsD],ProbsDM1[IndsDM1])
+#     #AllResults = vcat(vec(resultV),vec(resultH),vec(resultD),vec(resultDM1))
+#     AllResults = vcat(vec(resultV),vec(resultH))
+#     AllResults = vcat(AllResults...)
+#     AllResults = filter(x -> !isnan(x), AllResults)
+#     #mean(AllResults)
+#     isempty(AllResults) && error("NL_estimate_HV: no valid NLE estimates")
+#     return mean(AllResults)
+# end
+
 function NL_estimate_HV(Y)
 
     nx,ny = size(Y)
@@ -344,62 +421,35 @@ function NL_estimate_HV(Y)
     residualsH = [RegLinesH[i] .- hPaths[i] for i in range(1,length(hPaths))]
     ProbsH = [pvalue(LjungBoxTest(r, pathSize-1, polyOrder+1)) for r in residualsH]
 
-    DPaths = ScanSlope1(Y)[1]
-    DPathInd = findall(v -> length(v) > 12, DPaths)
-    #print(length(DPathInd))
-    DPaths = DPaths[DPathInd]
-    DlinCoef = [curve_fit(Polynomial, Float32.(collect(range(1,length(y0)))), y0,polyOrder) for y0 in DPaths]
-    RegLinesD = vec([DlinCoef[i].(collect(range(1,length(DPaths[i])))) for i in range(1,length(DPaths))])
-    residualsD = [RegLinesD[i] .- DPaths[i] for i in range(1,length(DPaths))]
-    ProbsD = [pvalue(LjungBoxTest(residualsD[i], length(DPaths[i])-1, polyOrder+1)) for i in range(1,length(residualsD))]
-
-    DM1Paths = ScanSlopeMinus1(Y)[1]
-    DM1PathInd = findall(v -> length(v) > 12, DM1Paths)
-    DM1Paths = DM1Paths[DM1PathInd]
-    DM1linCoef = [curve_fit(Polynomial, Float32.(collect(range(1,length(y0)))), y0,polyOrder) for y0 in DM1Paths]
-    RegLinesDM1 = vec([DM1linCoef[i].(collect(range(1,length(DM1Paths[i])))) for i in range(1,length(DM1Paths))])
-    residualsDM1 = [RegLinesDM1[i] .- DM1Paths[i] for i in range(1,length(DM1Paths))]
-    ProbsDM1 = [pvalue(LjungBoxTest(residualsDM1[i], length(DM1Paths[i])-1, polyOrder+1)) for i in range(1,length(residualsDM1))]
-
-    th = 0.05
+    th = 0.1
     IndsV = findall(v -> v >th, ProbsV)
     IndsH = findall(v -> v > th, ProbsH)
-    IndsD = findall(v -> v > th, ProbsD)
-    IndsDM1 = findall(v -> v > th, ProbsDM1)
-    numPasInds = sum(length.([IndsV,IndsH,IndsD,IndsDM1]))
+    numPasInds = sum(length.([IndsV,IndsH]))
 
      while numPasInds  <= 5
          th = th*.75
-      #   print("\n pCrit decreased to: \n", th)
          IndsV = findall(v -> v > th, ProbsV)
          IndsH = findall(v -> v > th, ProbsH)
-         # IndsD = findall(v -> v > th, ProbsD)
-         # IndsDM1 = findall(v -> v > th, ProbsDM1)
-         #numPasInds = sum(length.([IndsV,IndsH,IndsD,IndsDM1]))
          numPasInds = sum(length.([IndsV,IndsH]))
      end
 
-    print(numPasInds)
-
-    # resultV = [sigma_estimate_plus.(vPaths[IndsV])][1]
-    # resultH = [sigma_estimate_plus.(hPaths[IndsH])][1]
-    # resultD = [sigma_estimate_plus.(DPaths[IndsD])][1]
-    # resultDM1 = [sigma_estimate_plus.(DM1Paths[IndsDM1])][1]
-
-    resultV = [NLE_Auto(line,12) for line in vPaths[IndsV]]
-    resultH = [NLE_Auto(line,12) for line in hPaths[IndsH]]
-    #resultD = [NLE_Auto(line,12) for line in vPaths[IndsD]]
-    #resultDM1 = [NLE_Auto(line,12) for line in vPaths[IndsDM1]]
+    resultV = [sigma_estimate(line) for line in vPaths[IndsV]]
+    resultH = [sigma_estimate(line) for line in hPaths[IndsH]]
     
-    #PROBS = vcat(ProbsV[IndsV],ProbsH[IndsH],ProbsD[IndsD],ProbsDM1[IndsDM1])
-    #AllResults = vcat(vec(resultV),vec(resultH),vec(resultD),vec(resultDM1))
     AllResults = vcat(vec(resultV),vec(resultH))
     AllResults = vcat(AllResults...)
     AllResults = filter(x -> !isnan(x), AllResults)
-    #mean(AllResults)
     isempty(AllResults) && error("NL_estimate_HV: no valid NLE estimates")
-    return mean(AllResults)
+    
+    ##Method B: Estimates from the Residuals (requested modification)
+    # We calculate the standard deviation of the residuals that passed the test
+    resFilteredV = [std(residualsV[i]) for i in IndsV]
+    resFilteredH = [std(residualsH[i]) for i in IndsH]
+    allResid = filter(!isnan, vcat(resFilteredV, resFilteredH))
+
+    return [mean(AllResults), mean(allResid)]
 end
+
 
 function PathSlopeMinus1(matrix, P0)
     nx,ny = size(matrix)
@@ -511,16 +561,6 @@ function HorizontalPaths(matrix)
     return path
 end
 
-function NL_estimate_Horizontal(Y)
-    result = sigma_estimate_plus.(HorizontalPaths(y))
-    NLE = [r[1] for r in result];
-    NLEstdv = [r[2] for r in result];
-    
-    invVar = BLUEindep(NLE, NLEstdv)
-    MedianEstim = median(NLE)
-    MeanEstim = mean(NLE)
-    [invVar,MedianEstim,MeanEstim]
-end
 
 function PSMestimHorizontal(Y, σ,inf_criterion);    
     yPaths = HorizontalPaths(Y)
@@ -563,19 +603,6 @@ function PSMestimHorizontal(Y, σ,inf_criterion);
     end
     
     return Xe2D, STDXe2D
-end
-
-   
-
-function NL_estimate_Vertical(Y)
-    result = sigma_estimate_plus.(VerticalPaths(y))  
-    NLE = [r[1] for r in result];
-    NLEstdv = [r[2] for r in result];
-    
-    invVar = BLUEindep(NLE, NLEstdv)
-    MedianEstim = median(NLE)
-    MeanEstim = mean(NLE)
-    [invVar,MedianEstim,MeanEstim]
 end
 
 
@@ -2309,7 +2336,7 @@ function aggregateScans(y,scanEstims,scanVariances,spikeThr,NLE)
     return(XEBLUE,BLUEvar,Nest)
 end
 
-function getNoisyimage(path,addedNoiselevel,NLE_patchSize,seed,estimate_bool)
+function getNoisyimage(path,addedNoiselevel,NLE_patchSize,seed,estimate_bool,FullImage)
     
     print(split(path,'.')[end])
     obj=[]
@@ -2329,9 +2356,11 @@ function getNoisyimage(path,addedNoiselevel,NLE_patchSize,seed,estimate_bool)
     end
     if split(path,'.')[end]=="tiff" 
        obj = load(path)
+       obj = reverse(load(path), dims=1)
     end
     if split(path,'.')[end]=="tif" 
        obj = load(path)
+       obj = reverse(load(path), dims=1)
     end
     
     # Convert RGB to grayscale if needed
@@ -2367,15 +2396,15 @@ function getNoisyimage(path,addedNoiselevel,NLE_patchSize,seed,estimate_bool)
         
         snri0 =  getSNRI(vcat(x...),vcat(y...),vcat(y...))
         print("\n Added Noise: ",addedNoiselevel,"\n")
-                ##Trimming (ONLY FOR QUICK TESTS)
-        # x = x[256:800,256:600]
-        # y = y[256:800,256:600]
-        # w = w[256:800,256:600]
-        i0=200
-        hSize =200
-        x = x[i0:i0+hSize,i0:i0+hSize]
-        y = y[i0:i0+hSize,i0:i0+hSize]
-        w = w[i0:i0+hSize,i0:i0+hSize]
+        if FullImage==false
+            print("\nProcessing Image Segment")
+            #Trimming (ONLY FOR QUICK TESTS)
+            i0=200
+            hSize =100
+            x = x[i0:i0+hSize,i0:i0+hSize]
+            y = y[i0:i0+hSize,i0:i0+hSize]
+            w = w[i0:i0+hSize,i0:i0+hSize]
+        end
 
         print("Size (y): ",size(x))
     else
@@ -2395,12 +2424,13 @@ function getNoisyimage(path,addedNoiselevel,NLE_patchSize,seed,estimate_bool)
     LP = y[patch_index_i:patch_index_i+NLE_patchSize-1, patch_index_j:patch_index_j+NLE_patchSize-1]
     
     if estimate_bool == true
-        σe = NL_estimate_HV(LP);
+        σeANT,σeCLAS = NL_estimate_HV(LP);
     else 
-        σe = addedNoiselevel
+        σeANT = addedNoiselevel
+        σeCLAS =σeANT
     end
 
-    return w,x, y, σe, patch_index_i, patch_index_j
+    return w,x, y, σeANT,σeCLAS, patch_index_i, patch_index_j
 end
 
 
@@ -2527,12 +2557,13 @@ function get_K_NearestPatches(
     TextutedPix_Ind,
     patchSize::Int,
     sigma_e;
-    search_radius::Int = 25,
-    q::Float64 = 12.0,
+    q::Float64 = 9.0,
+    search_radius::Int = 30,
     )
 
+
     TextutedPix_Ind_Tup = [(e[1], e[2]) for e in TextutedPix_Ind]
-    hSize = patchSize ÷ 2
+    hSize = (patchSize-1) ÷ 2
     np_X, np_Y = size(xPSM)
 
     ref_p = TextutedPix_Ind_Tup[ref_Ind]
@@ -2557,6 +2588,10 @@ function get_K_NearestPatches(
         ref_p[2]-hSize:ref_p[2]+hSize
     ]
 
+    # local_var = var(vcat(ref_patch...))
+    # multiplier = 1.0 + (sigma_e^2 / (local_var + 1e-6))
+    # q = q*multiplier
+    # print("\nq:",q)
     # neighbourhood restriction
     surrounding = vcat(search_Region(ref_p, search_radius, np_X, np_Y)...)
     valid_neighbours = intersect(TextutedPix_Ind_Tup, surrounding)
@@ -2579,7 +2614,7 @@ function get_K_NearestPatches(
     nP = length(Sor_Patches)
     D = Vector{Float64}(undef, nP)
     for k in 1:nP
-        @inbounds D[k] = sqrt(sum(abs2, ref_patch .- Sor_Patches[k]))
+        @inbounds D[k] = sqrt(sum(abs2, ref_patch_Y .- Sor_Patches[k]))
     end
 
     # ε-nearest selection + SORT (CRITICAL FIX)
@@ -2598,9 +2633,7 @@ function get_K_NearestPatches(
            ref_patch_GT,
            ref_patch_Y,
            Dk[p],
-           closest_patches[1:minimum(
-                                    [patchSize^2,length(closest_patches)]
-                                    )],
+           closest_patches,#[1:minimum([patchSize^2,length(closest_patches)])],
            closest_patches_ind
 end
 
@@ -2802,18 +2835,38 @@ N = length(closest_patches)
 reconstructions = [
 reconstruct(refPatch, mean_patch, V_k, comp) for comp in 1:ncomp
 ]
-
-# --- Compute AIC for each reconstruction ---
-#n_params = D + (D*i - (i^2)/2 - i/2) + N*i ***INITIAL****
-#n_params  = D*i - (i^2)/2 -i/2 ******CORRECT*******
-
-aic_rec = [
-N * sum(eigenvalues[i+1:ncomp]) / σ2 +
-#2 * (D + D*i - (i^2)/2 - (i/2) ) +          # NEW DERIVATION 
-2 * (D + (D*i - (i^2)/2 - i/2) + N*i) +     # PREVIOUS
-(N * D * log(2π * σ2))
+aic_rec = Float64[]
 for i in 1:ncomp
-]
+    # 1. Data Fidelity (Residual Sum of Squares / σ²)
+    # eigenvalues[j] = \hat{λ}²_j / (N - 1) -> we recover the raw sum
+    rss_term = ((N - 1) * sum(eigenvalues[i+1:ncomp])) / σ2
+    
+    # 2. Complexity Penalty: 2 * (total degrees of freedom)
+    # p(i) = D (for the mean vector) + [D*i - i*(i+1)/2] (for the orthonormal basis)
+    # We EXCLUDE (N*i) because Z is profiled out in the surrogate likelihood.
+    
+    df_mean = D
+    df_subspace = (D * i) - (i * (i + 1) / 2)
+    df_sing_vectors = i
+    
+    # 3. Log-likelihood Constant
+    # N varies; it scales the likelihood to the sample size.
+    const_term = N * D/2 * log(2π * σ2)
+    NParams = df_mean + df_subspace + df_sing_vectors+ 1+ N*i
+
+    penalty_term = 2 * NParams
+    penalty_term_BIC = log(D)*(NParams)
+    #Correction_Term = (2*NParams*(NParams+1))/(N-NParams-1)
+    
+    push!(aic_rec,const_term+ rss_term + penalty_term)
+end
+
+# aic_rec = [
+# N * sum(eigenvalues[i+1:ncomp]) / σ2 +
+# #2 * (D + D*i - (i^2)/2 - (i/2) + N ) +          # NEW DERIVATION 
+# 2 * (D + (D*i - (i^2)/2 - i/2) + N+(N*i)) +     # PREVIOUS
+# (N * D * log(2π * σ2))
+# for i in 1:ncomp]
 
 # --- AIC minimum ---
 AIC_min = minimum(aic_rec)
@@ -2821,7 +2874,7 @@ C = argmin(aic_rec)
 
 # --- Select models with ΔAIC < 1000 ---
 ΔAIC = aic_rec .- AIC_min
-idx_range = findall(ΔAIC .< 10)
+idx_range = findall(ΔAIC .< 2)
 
 # --- Compute weights only on selected models ---
 weights = exp.(-0.5 .* ΔAIC[idx_range])
@@ -3097,7 +3150,7 @@ end
 #     return E, VE
 # end
 
-function combine_grids(E_grid, V_grid, method="ivw")
+function combine_grids(E_grid, V_grid, Y, method="ivw_skip_first"; tol=1e-8)
     Nx, Ny = size(E_grid)
     E = zeros(Float64, Nx, Ny)
     VE = zeros(Float64, Nx, Ny)
@@ -3131,23 +3184,47 @@ function combine_grids(E_grid, V_grid, method="ivw")
                     VE[i, j] = 1.0 / sum_weights
 
                 elseif method == "ivw_conditional"
-                    # If length > 1 and first element is NOT the minimum variance
                     if length(var_list) > 1 && argmin(var_list) != 1
-                        # Perform standard IVW
                         weights = 1.0 ./ (var_list .+ 1e-12)
                         sum_weights = sum(weights)
                         E[i, j] = sum(weights .* est_list) / sum_weights
                         VE[i, j] = 1.0 / sum_weights
                     else
-                        # Keep the first element as the estimate
                         E[i, j] = est_list[1]
                         VE[i, j] = var_list[1]
                     end
                 end
+
+                # --- New Logic: If E[i,j] ~ Y[i,j], replace with first element ---
+                if isapprox(E[i, j], Y[i, j], atol=tol)
+                    E[i, j] = est_list[1]
+                    VE[i, j] = var_list[1] # Update variance to match the first estimate
+                end
+                # -----------------------------------------------------------------
+
             else
                 E[i, j], VE[i, j] = NaN, NaN
             end
         end
     end
     return E, VE
+end
+
+##### NOISE LEVEL ESTIMATION
+@everywhere function sigma_estimate(y::Vector{Float64};M::Int=4)
+    n = length(y)
+    L = M + 1
+    Vs = [Int64[k == 0 ? 1.0 : i^k for i in 0:(L-1)] for k in 0:(M-1)]
+    Vs = mapreduce(permutedims, vcat, Vs)
+    V = nullspace(Vs)
+    Z = [sum(V[j] * y[i+j-1] for j in 1:length(V)) for i in 1:(n-length(V)+1)]
+    
+    #V = [1,-4,6,-4,1]/sqrt(70)
+    #Z = [sum(V * y[i+j-1]) for j in 1:length(V) for i in 1:(n-length(V)+1)]
+    #print(Z)
+    #Robust STDZ estimate
+    U = abs.(Z)
+    U2 = U.^2
+    σ_e = sqrt(mean(U2))
+    return σ_e
 end
